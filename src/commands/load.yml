@@ -7,6 +7,11 @@ parameters:
     description: >
       One or more filters. Use a filter to return a more specific list of results. Ex: "Key=string,Option=string,Values=string,..."
     default: ""
+  max_items:
+    type: integer
+    description: >
+      Number of items to fetch from the parameter store
+    default: 10000
 
 steps:
   - aws-cli/install
@@ -15,7 +20,7 @@ steps:
       name: Load AWS Parameters into environment
       command: |
         mkdir -p /tmp/parameterstore/
-        for row in $(aws ssm describe-parameters --no-paginate --parameter-filters << parameters.filter >> | jq -c '.Parameters[]'); do
+        for row in $(aws ssm describe-parameters --max-items << parameters.max_items >> --parameter-filters << parameters.filter >> | jq -c '.Parameters[]'); do
           _jq() {
             PARNAME=$(jq -r '.Name' \<<< "${row}")
             PARDATA=$(aws ssm get-parameters --with-decryption --names "${PARNAME}" | jq '.Parameters[].Value')
@@ -34,4 +39,6 @@ steps:
           }
           _jq
         done
+
         source /tmp/parameterstore/PARAMETERSTORESOURCEFILE
+        cat /tmp/parameterstore/PARAMETERSTORESOURCEFILE >> "$BASH_ENV"
