@@ -51,7 +51,7 @@ workflows:
       # store CIRCLE_TOKEN as a project env var or Contexts resource
       # if using Contexts, add your context below
       - orb-tools/publish-dev:
-          orb-name: "circleci/aws-parameter-store"
+          orb-name: "zookal/aws-parameter-store"
           requires:
             - orb-tools/pack
 
