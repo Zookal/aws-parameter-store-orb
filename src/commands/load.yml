@@ -34,8 +34,10 @@ steps:
               echo "This value has already been stored. Is this value stored twice?"
               exit 1
             fi
+
             echo "${PARDATA}" >> /tmp/parameterstore/"${PARNAME}"
             echo "export ${PARNAME}=$(cat /tmp/parameterstore/"${PARNAME}")" >> /tmp/parameterstore/PARAMETERSTORESOURCEFILE
+            echo "${PARNAME} exported"
           }
           _jq
         done
