@@ -14,8 +14,7 @@ parameters:
     default: 10000
 
 steps:
-  - aws-cli/install
-  - aws-cli/configure
+  - aws-cli/setup
   - run:
       name: Load AWS Parameters into environment
       command: |
