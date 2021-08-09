@@ -19,24 +19,29 @@ steps:
       name: Load AWS Parameters into environment
       command: |
         mkdir -p /tmp/parameterstore/
-        for row in $(aws ssm describe-parameters --max-items << parameters.max_items >> --parameter-filters << parameters.filter >> | jq -c '.Parameters[]'); do
+        for page in $(aws ssm describe-parameters --max-items << parameters.max_items >> --parameter-filters << parameters.filter >> | jq -c '.Parameters | _nwise(10)'); do
           _jq() {
-            PARNAME=$(jq -r '.Name' \<<< "${row}")
-            PARDATA=$(aws ssm get-parameters --with-decryption --names "${PARNAME}" | jq '.Parameters[].Value')
-            if [ -z "$PARDATA" ]
-            then
-              echo "${PARNAME} appears to be empty. Please double check the value of this parameter."
-              exit 1
-            fi
-            if [ -f /tmp/parameterstore/"${PARNAME}" ]
-            then
-              echo "This value has already been stored. Is this value stored twice?"
-              exit 1
-            fi
+            PARAMS=$(echo "${page}" | jq -rc '.[].Name' | awk 'NR > 1 { printf(" ") } {printf "%s",$0}')
 
-            echo "${PARDATA}" >> /tmp/parameterstore/"${PARNAME}"
-            echo "export ${PARNAME}=$(cat /tmp/parameterstore/"${PARNAME}")" >> /tmp/parameterstore/PARAMETERSTORESOURCEFILE
-            echo "${PARNAME} exported"
+            for row in $(aws ssm get-parameters --with-decryption --names ${PARAMS} | jq -r '.Parameters[] | @base64'); do
+              PARNAME=$(echo ${row} | base64 --decode | jq -r '.Name')
+              PARDATA=$(echo ${row} | base64 --decode | jq -r '.Value')
+
+              if [ -z "$PARDATA" ]
+              then
+                echo "${PARNAME} appears to be empty. Please double check the value of this parameter."
+                exit 1
+              fi
+              if [ -f /tmp/parameterstore/"${PARNAME}" ]
+              then
+                echo "This value has already been stored. Is this value stored twice?"
+                exit 1
+              fi
+
+              echo "${PARDATA}" >> /tmp/parameterstore/"${PARNAME}"
+              echo "export '${PARNAME}=$(cat /tmp/parameterstore/"${PARNAME}")'" >> /tmp/parameterstore/PARAMETERSTORESOURCEFILE
+              echo "${PARNAME} exported"
+            done
           }
           _jq
         done
