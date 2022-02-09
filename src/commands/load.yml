@@ -12,9 +12,21 @@ parameters:
     description: >
       Number of items to fetch from the parameter store
     default: 10000
+  aws_cli_version:
+    type: string
+    description: >
+     The version of the AWS CLI to use
+    default: ""
+  aws_cli_override_installed:
+    type: boolean
+    description: >
+      Wether to override the installed version of AWS CLI or not
+    default: false
 
 steps:
-  - aws-cli/setup
+  - aws-cli/setup:
+      override-installed: << parameters.aws_cli_override_installed >>
+      version: << parameters.aws_cli_version >>
   - run:
       name: Load AWS Parameters into environment
       command: |
